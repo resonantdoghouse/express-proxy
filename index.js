@@ -5,7 +5,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Proxy endpoint
-const API_SERVICE_URL = "https://www.fruityvice.com"; // Replace with the target API's base URL
+const API_SERVICE_URL = "https://www.themealdb.com"; // Replace with the target API's base URL
 
 // Apply CORS headers to every request
 app.use((req, res, next) => {

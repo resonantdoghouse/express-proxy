@@ -4,9 +4,6 @@ const { createProxyMiddleware } = require("http-proxy-middleware");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Proxy endpoint
-const API_SERVICE_URL = "https://www.themealdb.com"; // Replace with the target API's base URL
-
 // Apply CORS headers to every request
 app.use((req, res, next) => {
   res.header("Access-Control-Allow-Origin", "*");
@@ -18,17 +15,23 @@ app.use((req, res, next) => {
   next();
 });
 
-// Proxy configuration
-app.use(
-  "/api",
+// Dynamic proxy configuration
+app.use('/api', (req, res, next) => {
+  const targetUrl = req.query.url;
+  if (!targetUrl) {
+    res.status(400).send('URL query parameter is required');
+    return;
+  }
+
+  // Create a middleware for the specific request
   createProxyMiddleware({
-    target: API_SERVICE_URL,
+    target: targetUrl,
     changeOrigin: true,
     pathRewrite: {
       [`^/api`]: "",
     },
-  })
-);
+  })(req, res, next);
+});
 
 app.listen(PORT, () =>
   console.log(`Proxy server running on http://localhost:${PORT}`)

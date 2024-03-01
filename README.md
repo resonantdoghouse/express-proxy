@@ -8,7 +8,7 @@
 
 ```js
 async function fetchData() {
-  const url = "http://localhost:3000/api?url=http://exampleapi.com/data";
+  const url = "https://express-proxy-3fa2dcca9dad.herokuapp.com/api?url=http://exampleapi.com/data";
 
   try {
     const response = await fetch(url);
@@ -26,7 +26,7 @@ fetchData();
 
 ```js
 async function fetchData() {
-  const url = "http://localhost:3000/api?url=http://exampleapi.com/data";
+  const url = "https://express-proxy-3fa2dcca9dad.herokuapp.com/api?url=http://exampleapi.com/data";
 
   try {
     const response = await axios.get(url);
@@ -42,5 +42,5 @@ fetchData();
 ### Using Curl
 
 ```curl
-curl "http://localhost:3000/api?url=http://exampleapi.com/data"
+curl "https://express-proxy-3fa2dcca9dad.herokuapp.com/api?url=http://exampleapi.com/data"
 ```

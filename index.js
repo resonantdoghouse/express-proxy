@@ -12,6 +12,8 @@ app.use((req, res, next) => {
     "Access-Control-Allow-Headers",
     "Origin, X-Requested-With, Content-Type, Accept, Authorization"
   );
+  // Allow credentials to be shared, might be needed depending on the use case
+  res.header("Access-Control-Allow-Credentials", "true");
   next();
 });
 
@@ -23,14 +25,18 @@ app.use('/api', (req, res, next) => {
     return;
   }
 
-  // Create a middleware for the specific request
-  createProxyMiddleware({
+  // Instead of creating middleware inside request handler,
+  // modify the target dynamically for each request
+  const proxyMiddleware = createProxyMiddleware({
     target: targetUrl,
     changeOrigin: true,
     pathRewrite: {
       [`^/api`]: "",
     },
-  })(req, res, next);
+    router: () => targetUrl, // Dynamically set target based on request
+  });
+
+  proxyMiddleware(req, res, next);
 });
 
 app.listen(PORT, () =>

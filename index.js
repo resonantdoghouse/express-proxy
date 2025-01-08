@@ -4,6 +4,17 @@ const { createProxyMiddleware } = require("http-proxy-middleware");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Handle preflight requests
+app.options('/api', (req, res) => {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  res.header(
+    "Access-Control-Allow-Headers",
+    "Origin, X-Requested-With, Content-Type, Accept, Authorization"
+  );
+  res.sendStatus(204); // No Content
+});
+
 // Apply CORS headers to every request
 app.use((req, res, next) => {
   res.header("Access-Control-Allow-Origin", "*");
@@ -12,8 +23,6 @@ app.use((req, res, next) => {
     "Access-Control-Allow-Headers",
     "Origin, X-Requested-With, Content-Type, Accept, Authorization"
   );
-  // Allow credentials to be shared, might be needed depending on the use case
-  res.header("Access-Control-Allow-Credentials", "true");
   next();
 });
 
@@ -25,15 +34,17 @@ app.use('/api', (req, res, next) => {
     return;
   }
 
-  // Instead of creating middleware inside request handler,
-  // modify the target dynamically for each request
   const proxyMiddleware = createProxyMiddleware({
     target: targetUrl,
     changeOrigin: true,
     pathRewrite: {
       [`^/api`]: "",
     },
-    router: () => targetUrl, // Dynamically set target based on request
+    preserveHeaderKeyCase: true, // Preserve headers case-sensitive
+    onProxyReq: (proxyReq, req) => {
+      // Log for debugging
+      console.log(`Proxying request to: ${targetUrl}`);
+    },
   });
 
   proxyMiddleware(req, res, next);

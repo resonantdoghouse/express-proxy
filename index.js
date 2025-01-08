@@ -1,24 +1,23 @@
 const express = require("express");
 const { createProxyMiddleware } = require("http-proxy-middleware");
-const rateLimit = require("express-rate-limit");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Rate limiting middleware
-const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per windowMs
-  message: "Too many requests, please try again later.",
+// Handle preflight requests
+app.options('/api', (req, res) => {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  res.header(
+    "Access-Control-Allow-Headers",
+    "Origin, X-Requested-With, Content-Type, Accept, Authorization"
+  );
+  res.sendStatus(204); // No Content
 });
 
-// CORS setup with allowed origins
-const allowedOrigins = ['http://yourdomain.com', 'http://anotherdomain.com'];
+// Apply CORS headers to every request
 app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  if (allowedOrigins.includes(origin)) {
-    res.header("Access-Control-Allow-Origin", origin);
-  }
+  res.header("Access-Control-Allow-Origin", "*");
   res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
   res.header(
     "Access-Control-Allow-Headers",
@@ -27,44 +26,30 @@ app.use((req, res, next) => {
   next();
 });
 
-// Validate target URL middleware
-const allowedHosts = ['example.com', 'api.example.com'];
-const validateTargetUrl = (req, res, next) => {
+// Dynamic proxy configuration
+app.use('/api', (req, res, next) => {
   const targetUrl = req.query.url;
   if (!targetUrl) {
-    return res.status(400).send('URL query parameter is required');
+    res.status(400).send('URL query parameter is required');
+    return;
   }
-  try {
-    const url = new URL(targetUrl);
-    if (!allowedHosts.includes(url.hostname)) {
-      return res.status(403).send('Forbidden: Invalid target URL');
-    }
-    req.targetUrl = targetUrl; // Store validated URL for use by proxy middleware
-    next();
-  } catch (err) {
-    return res.status(400).send('Invalid URL');
-  }
-};
 
-// Create proxy middleware instance with timeout
-const proxyMiddleware = createProxyMiddleware({
-  changeOrigin: true,
-  timeout: 5000, // 5 seconds for upstream server
-  proxyTimeout: 5000, // 5 seconds for proxy connection
-  preserveHeaderKeyCase: true,
-  pathRewrite: (path, req) => path.replace(/^\/api/, ""),
-  onProxyReq: (proxyReq, req) => {
-    console.log(`Proxying request to: ${req.targetUrl}`);
-  },
-});
+  const proxyMiddleware = createProxyMiddleware({
+    target: targetUrl,
+    changeOrigin: true,
+    pathRewrite: {
+      [`^/api`]: "",
+    },
+    preserveHeaderKeyCase: true, // Preserve headers case-sensitive
+    onProxyReq: (proxyReq, req) => {
+      // Log for debugging
+      console.log(`Proxying request to: ${targetUrl}`);
+    },
+  });
 
-// Apply rate limiting and target URL validation to /api
-app.use('/api', apiLimiter, validateTargetUrl, (req, res, next) => {
-  req.url = req.targetUrl; // Set the target URL for the proxy middleware
   proxyMiddleware(req, res, next);
 });
 
-// Start the server
 app.listen(PORT, () =>
   console.log(`Proxy server running on http://localhost:${PORT}`)
 );
